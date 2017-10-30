@@ -22,10 +22,10 @@
         </f7-message>
   
       </f7-messages>
-      <f7-messagebar placeholder="Message" send-link="Send" v-on:submit="sendTextMessage">
+      <f7-messagebar :placeholder="$t('message.placeholder')" :send-link="$t('app.send')" v-on:submit="sendTextMessage">
         <div slot="before-textarea" class="icon-only" @change="sendImageAndFile">
             <input type="file" class="edit-file" id="file" style="display:none">
-        <a v-on:click="addPic" style="cursor:pointer;margin-right:5px"><i class="f7-icons">add</i></a>
+        <a v-on:click="addPic" style="cursor:pointer;margin-right:5px"><i class="f7-icons">add </i></a>
         <!-- <f7-icon icon="icon-add"></f7-icon> -->
       </div>
       </f7-messagebar>
