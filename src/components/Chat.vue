@@ -94,11 +94,22 @@
             :type="message.type"
             :day="message.day"
             :time="message.time">
-                <img v-if="message.img" :src="message.img" />
+                    <img v-if="message.imageUri" :src="message.imageUri" v-on:click="onStandalone(message.imageUri)" />
             </f7-message>
     
         </f7-messages>
-        <f7-messagebar placeholder="Message" send-link="Send" v-on:submit="sendTextMessage"></f7-messagebar>
+        <f7-messagebar placeholder="Message" send-link="Send" v-on:submit="sendTextMessage">
+             <div slot="before-textarea" class="icon-only" @change="sendImageAndFile">
+            <input type="file" class="edit-file" id="file" style="display:none">
+        <a v-on:click="addPic" style="cursor:pointer;margin-right:5px"><i class="f7-icons">add</i></a>
+        <!-- <f7-icon icon="icon-add"></f7-icon> -->
+      </div>
+        </f7-messagebar>
+        <f7-photo-browser
+      ref="pb"
+        theme="dark"
+      :photos="photos"
+    ></f7-photo-browser>
         </f7-page>
         </f7-pages>
         </f7-view>
@@ -131,12 +142,14 @@
   import IMSDK from '../factory/IMSdk';
   import server from '../factory/server';
   import {formatDate} from '../factory/filters.js';
+  import Upload from '../factory/Upload';
   export default {
     data: function () {
         return {
             userinfo: "",
             title:productName,
             messageList: [],
+            photos:[],
             message: null,
             hasMsg: false,
             groupPublicInfo:'',
@@ -270,6 +283,9 @@
             // this.setupRedirection(route);
             this.updateConvList();
             this.updateMessageWindow();
+                     setTimeout(()=>{
+         this.messageList.push(this.newDate);
+            },100)
         },
         sendTextMessage: function(text,clear) {
             var targetId = this.userId;
@@ -290,7 +306,7 @@
         changeTextMessage: function($event) {
             this.textMessage = $event.target.innerHTML;
         },
-        sendImageAndFile: function(event) {
+         sendImageAndFile: function(event) {
             var file = event.target.files[0];
             Upload.getUploadUrl(file, function(data) {
                 if (data.fileType === 'image') {
@@ -300,12 +316,31 @@
                 }
             }.bind(this));
         },
+         addPic:function(e){
+                e.preventDefault();
+                $('input[type=file]').trigger('click');
+                return false;
+        },
+        onStandalone: function (imageUri) {
+            console.log(imageUri)  
+            this.$f7.photoBrowser({
+            photos : [{
+            url:imageUri,
+            }],
+            type: 'standalone',
+            theme: 'dark',
+            zoom:true,
+            maxZoom:1
+            }).open()
+        },
         sendImage: function(data) {
+             var type = this.groupId;
             var base64 = data.hash;
             var url = data.downloadUrl;
-            var msg = new RongIMLib.ImageMessage({content:base64, imageUri:url});
-            Message.sendMessage(this.conversation.conversationType, this.conversation.targetId, msg, function(message) {
-                this.messageList.push(message);
+            var msg = new RongIMLib.ImageMessage({content:base64, imageUri:url, user : this.target});
+            Message.sendMessage(RongIMLib.ConversationType.GROUP, type, msg, function(message) {
+                console.log(message)
+             this.setMessages(message.content, this.target);
             }.bind(this));
         },
         sendFile: function(data) {
@@ -343,6 +378,20 @@
            setTimeout(()=>{
          window.history.back(-1); 
             },80000)
+
+        function isWeiXin() {
+        var ua = window.navigator.userAgent.toLowerCase();
+        console.log(ua);//mozilla/5.0 (iphone; cpu iphone os 9_1 like mac os x) applewebkit/601.1.46 (khtml, like gecko)version/9.0 mobile/13b143 safari/601.1
+        if (ua.match(/MicroMessenger/i) == 'micromessenger') {
+        return true;
+        } else {
+        return false;
+        }
+        }
+        if(isWeiXin()){
+        console.log(" 是来自微信内置浏览器");
+        confirm('建议用浏览器打开,方便保存登录信息')
+        }
         this.$$('body').removeClass('theme-blue').addClass('theme-white');
         server.getUserBasicInfo(this.userId).then(data => {
                localStorage.setItem('rongCloud_token', data.rongCloudToken);
@@ -357,7 +406,7 @@
              this.groupMaster.userPhoto=this.imghost+this.groupMaster.userPhoto;
             if(this.groupPublicInfo!=""){
                 // this.$f7.modalTitle="群公告";
-                this.$f7.alert(this.groupPublicInfo)
+               this.$f7.alert(this.groupPublicInfo,'群公告')
             }
             
         })

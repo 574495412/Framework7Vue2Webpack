@@ -81,8 +81,10 @@
         <!-- Pages -->
         <f7-pages>
           <f7-page>
-                   <img v-if="cover" :src="cover" width="100%" height="68px"/>
-            <f7-block-title>Login</f7-block-title>
+              
+                   <div v-if="cover"  :style="{'background-image': 'url(' + cover + ')',
+                       'height': '82px','background-size':'cover','background-position-y':'center'}"></div>
+            <!-- <f7-block-title>Login</f7-block-title> -->
             <f7-list>
                 <f7-list-item>
                     <f7-label>E-mail</f7-label>
@@ -141,6 +143,7 @@
                 host :'/api',
                 rongTokenStr:"",
                 groupId:getQueryString('acid'),
+                share:getQueryString('share'),
                 title:productName,
                 errMsg:null,
                 cover:null,
@@ -231,11 +234,24 @@
                 // this.getBasicInfo()
             }
         },created:function () {
+                function isWeiXin() {
+                var ua = window.navigator.userAgent.toLowerCase();
+                console.log(ua);//mozilla/5.0 (iphone; cpu iphone os 9_1 like mac os x) applewebkit/601.1.46 (khtml, like gecko)version/9.0 mobile/13b143 safari/601.1
+                if (ua.match(/MicroMessenger/i) == 'micromessenger') {
+                return true;
+                } else {
+                return false;
+                }
+                }
+                if(isWeiXin()){
+                console.log(" 是来自微信内置浏览器");
+                confirm('建议用浏览器打开,方便保存登录信息')
+                }
                 server.getEventInfo(this.groupId).then(data => {
                     if(data.price!=0){
                         this.errMsg="你不能通过登录进入群聊"
                     }
-                    this.cover="https://chumi.co/"+data.cover;
+                    this.cover=this.imghost+data.cover;
                 });
                 server.getGroupAllInfo(this.groupId).then(data => {
                     this.groupPublicInfo=data.groupPublicInfo;
@@ -280,4 +296,19 @@
     vertical-align: middle;
     margin-left: 5px;
 }
+.list-block {
+    margin-top: 0;
+}
+/*6*/
+@media (min-device-width : 375px) and (max-device-width : 667px) and (-webkit-min-device-pixel-ratio : 2){
+        .list-block .item-input {
+    width: 61%;}
+ }
+
+/*6+*/
+@media (min-device-width : 414px) and (max-device-width : 736px) and (-webkit-min-device-pixel-ratio : 3){ 
+      .list-block .item-input {
+    width: 60%;}
+}
+
 </style>

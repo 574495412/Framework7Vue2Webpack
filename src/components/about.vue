@@ -18,11 +18,22 @@
         :type="message.type"
         :day="message.day"
         :time="message.time">
-             <img v-if="message.img" :src="message.img" />
+             <img v-if="message.imageUri" :src="message.imageUri" v-on:click="onStandalone(message.imageUri)" />
         </f7-message>
   
       </f7-messages>
-      <f7-messagebar placeholder="Message" send-link="Send" v-on:submit="sendTextMessage"></f7-messagebar>
+      <f7-messagebar placeholder="Message" send-link="Send" v-on:submit="sendTextMessage">
+        <div slot="before-textarea" class="icon-only" @change="sendImageAndFile">
+            <input type="file" class="edit-file" id="file" style="display:none">
+        <a v-on:click="addPic" style="cursor:pointer;margin-right:5px"><i class="f7-icons">add</i></a>
+        <!-- <f7-icon icon="icon-add"></f7-icon> -->
+      </div>
+      </f7-messagebar>
+       <f7-photo-browser
+      ref="pb"
+        theme="dark"
+      :photos="photos"
+    ></f7-photo-browser>
     </f7-page>
   </template>
 <script>
@@ -54,6 +65,7 @@ export default {
             routeName: null,
             title:productName,
             messageList: [],
+            photos:[],
             message: null,
             hasMsg: false,
             groupPublicInfo:'',
@@ -129,6 +141,12 @@ export default {
                         m[i].messages[j].name= m[i].messages[j].user.name;
                         m[i].messages[j].date= m[i].messages[j].user.date;
                         this.messageList .push(m[i].messages[j])
+                        // if( m[i].messages[j].imageUri){
+                        //     this.photos.push( {
+                        //         url:  m[i].messages[j].imageUri,
+                        //         caption: ''
+                        //     })
+                        // }
                      }
                 }else{
                     for(let j=0;j<m[i].messages.length;j++){
@@ -140,6 +158,7 @@ export default {
                         this.messageList .push(m[i].messages[j])
                      }
                 }
+                console.log(m[i])
             }
         },
         changeUser:function(target){
@@ -201,6 +220,10 @@ export default {
             this.setupRedirection(route);
             this.updateConvList();
             this.updateMessageWindow();
+               setTimeout(()=>{
+         this.messageList.push(this.newDate);
+            },100)
+         
         },
         sendTextMessage: function(text,clear) {
             var targetId = this.$route.params.userId;
@@ -231,12 +254,31 @@ export default {
                 }
             }.bind(this));
         },
+         addPic:function(e){
+                e.preventDefault();
+                $('input[type=file]').trigger('click');
+                return false;
+        },
+        onStandalone: function (imageUri) {
+            console.log(imageUri)  
+            this.$f7.photoBrowser({
+            photos : [{
+            url:imageUri,
+            }],
+            type: 'standalone',
+            theme: 'dark',
+            zoom:true,
+            maxZoom:1
+            }).open()
+        },
         sendImage: function(data) {
+             var type = this.$route.params.groupId;
             var base64 = data.hash;
             var url = data.downloadUrl;
-            var msg = new RongIMLib.ImageMessage({content:base64, imageUri:url});
-            Message.sendMessage(this.conversation.conversationType, this.conversation.targetId, msg, function(message) {
-                this.messageList.push(message);
+            var msg = new RongIMLib.ImageMessage({content:base64, imageUri:url, user : this.target});
+            Message.sendMessage(RongIMLib.ConversationType.GROUP, type, msg, function(message) {
+                console.log(message)
+             this.setMessages(message.content, this.target);
             }.bind(this));
         },
         sendFile: function(data) {
@@ -271,11 +313,12 @@ export default {
     },
     created: function () {
         // this.routeName = this.$route.name;
+         this.$$('body').removeClass('theme-blue').addClass('theme-white');
+
         server.getGroupAllInfo(this.groupId).then(data => {
                 this.groupPublicInfo=data.groupPublicInfo;
                 if(this.groupPublicInfo!=""){
-                    this.$f7.modalTitle="群公告";
-                    this.$f7.alert(this.groupPublicInfo)
+                    this.$f7.alert(this.groupPublicInfo,'群公告')
                 }
         })
           IMSDK.create(function (message) {
