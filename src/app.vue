@@ -216,6 +216,7 @@
             server.getRegisterInfo(RegisterInfo).then(data => {
                     localStorage.setItem('rongCloud_token', data.token);
                     localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('groupId', this.groupId);
                     this.userId=localStorage.getItem('userId');
                     server.getUserInfo(this.userId).then(data => {
                         localStorage.setItem('username',data.username);
@@ -248,10 +249,17 @@
                 confirm('建议用浏览器打开,方便保存登录信息')
                 }
                 server.getEventInfo(this.groupId).then(data => {
+                    this.userId=localStorage.getItem('userId');
+                      this.cover=this.imghost+data.cover;
+                      let self=this;
                     if(data.price!=0){
                         this.errMsg="你不能通过登录进入群聊"
+                    }else if(this.userId==data.link){
+                        setTimeout(()=>{
+                        //   window.location.href= '/Chat/'+this.userId+'/'+this.groupId;
+                        self.$f7.mainView.router.load({url: '/Chat/'+this.userId+'/'+this.groupId})
+                        },0)
                     }
-                    this.cover=this.imghost+data.cover;
                 });
                 server.getGroupAllInfo(this.groupId).then(data => {
                     this.groupPublicInfo=data.groupPublicInfo;
@@ -260,16 +268,6 @@
                     this.groupMaster.userPhoto=this.imghost+this.groupMaster.userPhoto;
                 });
                 this.$$('body').removeClass('theme-blue').addClass('theme-white')
-               var self=this;           
-               if(localStorage.getItem('userId')){
-               this.userId=localStorage.getItem('userId');
-               console.log(this.groupId);
-                // self.$f7.mainView.router.load({url: '/Chat/'+this.userId+'/'+this.groupId});
-                setTimeout(()=>{
-                //   window.location.href= '/Chat/'+this.userId+'/'+this.groupId;
-                self.$f7.mainView.router.load({url: '/Chat/'+this.userId+'/'+this.groupId})
-                },0)
-            }
         }, mounted () {
             
        },

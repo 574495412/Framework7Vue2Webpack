@@ -75,9 +75,14 @@
       <f7-view id="main-view" navbar-through :dynamic-navbar="true" main>
         <!-- Navbar -->
         <f7-navbar sliding>
-        <f7-nav-left>
-            <f7-link icon="icon-bars" open-panel="left"></f7-link>
-        </f7-nav-left>
+            <f7-nav-left>
+                <f7-link v-show="!goBackState" icon="icon-bars" open-panel="left"></f7-link>
+                <a class="link" v-show="goBackState" @click="goBack" style="margin-left:0">
+                <i class="icon icon-back"></i>
+                <!-- Back link text rendered only for iOS theme -->
+                <span>Back</span>
+               </a>
+            </f7-nav-left>
         <f7-nav-center sliding>{{title}}</f7-nav-center>
         </f7-navbar>
         <!-- Pages -->
@@ -94,14 +99,15 @@
             :type="message.type"
             :day="message.day"
             :time="message.time">
+              <a v-if="replaceSrc(message.content)"  target="showHere" @click="showIframe(replaceSrc(message.content))" style="text-decoration: underline;cursor: pointer">{{replaceSrc(message.content)}}</a>
                     <img v-if="message.imageUri" :src="message.imageUri" v-on:click="onStandalone(message.imageUri)" />
             </f7-message>
     
         </f7-messages>
         <f7-messagebar :placeholder="$t('message.placeholder')" :send-link="$t('app.send')"v-on:submit="sendTextMessage">
-             <div slot="before-textarea" class="icon-only" @change="sendImageAndFile">
-            <input type="file" class="edit-file" id="file" style="display:none">
-        <a v-on:click="addPic" style="cursor:pointer;margin-right:5px"><i class="f7-icons">add</i></a>
+             <div slot="before-textarea" class="icon-only">
+            <!-- <input type="file" class="edit-file" id="file" style="display:none"> -->
+        <a v-on:click="addPic" style="cursor:pointer;margin-right:5px"><i class="f7-icons">camera</i></a>
         <!-- <f7-icon icon="icon-add"></f7-icon> -->
       </div>
         </f7-messagebar>
@@ -110,6 +116,8 @@
         theme="dark"
       :photos="photos"
     ></f7-photo-browser>
+    <iframe v-show="iframeState" id="show-iframe"  name="showHere" frameborder="0" scrolling="auto" style="background-color:transparent;padding-top: 45px; position: absolute; z-index: 999; width: 100%; height: 100%; top: 0;left:0;":src="iframeUrl"></iframe>
+
         </f7-page>
         </f7-pages>
         </f7-view>
@@ -200,9 +208,49 @@
             }
         };
     },
+    mounted(){
+        const oIframe = document.getElementById('show-iframe');
+        const deviceWidth = document.documentElement.clientWidth;
+        const deviceHeight = document.documentElement.clientHeight;
+        oIframe.style.width = deviceWidth + 'px';
+        oIframe.style.height = deviceHeight + 'px';
+    },
     props: ['receiveMessage'],
     // components: {MessageComponent, ChatTitle},
     methods: {
+        goBack(){
+        this.goBackState = false;
+        this.iframeState = false;
+        },
+        showIframe(url){
+        this.goBackState = true;
+        this.iframeState = true;
+        this.iframeUrl=url
+        // window.open(url)
+        },
+        hideIframe(){
+        // this.goBackState = false;
+        this.iframeState = false;
+        },
+        replaceSrc:function (txt){
+        var reg = /(((https?:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)/ig;
+        if(txt==undefined){
+            return false
+        }
+       if(!!txt.match(/(((^https?:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)$/g)){
+        var result = txt.replace(reg,function(item){
+            if(item.indexOf('https://') <0)
+            {
+             item='https://'+item
+            }
+           
+            return item;
+            });
+            return result;
+        }else{
+            return false
+        }
+        },
         setupBase: function(route) {
             let conversation = route.params.content || null;
             this.conversation = conversation;
@@ -245,7 +293,7 @@
             this.updateMessageWindow();
         },
         setMessages:function(message,t){
-            let msgStr = localStorage.getItem(this.userId+"_msg");
+            let msgStr = localStorage.getItem(this.groupId+"_msg");
             let msgObj=((!msgStr) ? []:JSON.parse(msgStr));
             let flag=false;
             for(let i=0;i<msgObj.length;i++){
@@ -267,12 +315,12 @@
                     messages:message
                 })
             }
-            localStorage.setItem(this.userId+"_msg",JSON.stringify(msgObj));
+            localStorage.setItem(this.groupId+"_msg",JSON.stringify(msgObj));
             this.updateConvList();
             this.updateMessageWindow();
         },
         getMessages:function(){
-            let msgs = localStorage.getItem(this.userId+"_msg");
+            let msgs = localStorage.getItem(this.groupId+"_msg");
             if(!msgs){
                 msgs='[]';
             }
@@ -378,7 +426,12 @@
            setTimeout(()=>{
          window.history.back(-1); 
             },80000)
-
+          $("input").on("click", function() {
+                var target = this;
+                setTimeOut(function() {
+                    target.scrollIntoView(true);
+                }, 100);
+            })
         function isWeiXin() {
         var ua = window.navigator.userAgent.toLowerCase();
         console.log(ua);//mozilla/5.0 (iphone; cpu iphone os 9_1 like mac os x) applewebkit/601.1.46 (khtml, like gecko)version/9.0 mobile/13b143 safari/601.1
